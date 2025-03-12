@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String        @id @default(cuid())
+  name             String
+  email            String        @unique
+  password         String
+  role             UserRole      @default(EMPLOYEE)
+  phone            String?
+  address          String?
+  avatar           String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  transactions     Transaction[]
+  customers        Customer[]
+  recievedMessages Message[]     @relation("MessageToUser")
+  message          Message[]     @relation("message")
+
+  @@map("users")
+}
+
+model Customer {
+  id           String        @id @default(cuid())
+  code         String        @unique
+  type         CsutomerType  @default(INDIVIDUAL)
+  first_name   String?
+  second_name  String?
+  company_name String?
+  email        String        @unique
+  work_phone   String?
+  mobile_phone String?
+  TRN          String? // Tax Registration Number
+  country      String
+  city         String
+  address      String?
+  logo         String?
+  note         String?
+  createdBy    User          @relation(fields: [createdById], references: [id])
+  createdById  String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  Chat         Chat?
+
+  @@map("customers")
+}
+
+model Transaction {
+  id          String           @id @default(cuid())
+  code        String           @unique
+  title       String
+  description String?
+  state       TransactionState @default(INPROGRESS)
+  employee    User             @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  customerId  String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("transactions")
+}
+
+model Chat {
+  id         String    @id @default(cuid())
+  message    Message[]
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  customerId String    @unique
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("chats")
+}
+
+model Message {
+  id        String       @id @default(cuid())
+  content   String
+  image     String?
+  chat      Chat         @relation(fields: [chatId], references: [id])
+  chatId    String
+  sender    User         @relation("message", fields: [senderId], references: [id])
+  senderId  String
+  receivers User[]       @relation("MessageToUser")
+  members   Int          @default(0)
+  state     MessageState @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("messages")
+}
+
+enum MessageState {
+  PENDING
+  SEND
+  DELIVERED
+  SEEN
+}
+
+enum CsutomerType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum TransactionState {
+  INPROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+  CUSTOMER
+}
